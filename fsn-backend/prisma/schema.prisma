@@ -1,0 +1,436 @@
+
+// FSN — Prisma Schema
+// Maps directly to TDP §3.1 PostgreSQL data model
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  bop_user
+  ngo
+  innovator
+  admin
+}
+
+enum ProblemCategory {
+  agriculture
+  health
+  water
+  education
+  livelihood
+  infrastructure
+  energy
+  other
+}
+
+enum ProblemUrgency {
+  low
+  medium
+  high
+  critical
+}
+
+enum ProblemStatus {
+  open
+  in_progress
+  under_trial
+  solved
+  closed
+}
+
+enum ProblemVisibility {
+  public
+  community
+  private
+}
+
+enum SolutionStatus {
+  submitted
+  accepted
+  under_trial
+  implemented
+  rejected
+}
+
+enum CoCreationStatus {
+  pending
+  active
+  closed
+}
+
+enum FeedbackCheckpoint {
+  week1
+  month1
+  month3
+  month6
+}
+
+enum WoFTier {
+  bronze
+  silver
+  gold
+}
+
+enum EntityType {
+  problem
+  solution
+  blog
+}
+
+enum CommentEntityType {
+  solution
+  blog
+}
+
+enum VoteValue {
+  up
+  down
+}
+
+// ─────────────────────────────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────────────────────────────
+
+model User {
+  id              String   @id @default(uuid()) @db.Uuid
+  email           String?  @unique @db.VarChar(255)
+  phone           String?  @unique @db.VarChar(20)
+  passwordHash    String?  @map("password_hash") @db.VarChar(255)
+  fullName        String   @map("full_name") @db.VarChar(255)
+  role            UserRole @default(bop_user)
+  avatarUrl       String?  @map("avatar_url")
+  bio             String?
+  location        Json?    // { city, state, country, lat, lng }
+  isVerified      Boolean  @default(false) @map("is_verified")
+  otpCode         String?  @map("otp_code") @db.VarChar(10)
+  otpExpiresAt    DateTime? @map("otp_expires_at")
+  reputationScore Int      @default(0) @map("reputation_score")
+  oauthProvider   String?  @map("oauth_provider") @db.VarChar(50)
+  oauthId         String?  @map("oauth_id") @db.VarChar(255)
+  isDeleted       Boolean  @default(false) @map("is_deleted")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  problems        Problem[]
+  solutions       Solution[]
+  feedbacks       Feedback[]
+  votes           Vote[]
+  comments        Comment[]
+  badges          UserBadge[]
+  notifications   Notification[]
+  sentMessages    Message[]      @relation("SentMessages")
+  conversations   ConversationParticipant[]
+  coCreationsAsInnovator  CoCreation[] @relation("InnovatorCoCreations")
+  coCreationsAsCommunity  CoCreation[] @relation("CommunityCoCreations")
+  coCreationsAsNgo        CoCreation[] @relation("NgoCoCreations")
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PROBLEMS
+// ─────────────────────────────────────────────────────────────────
+
+model Problem {
+  id              String            @id @default(uuid()) @db.Uuid
+  postedBy        String            @map("posted_by") @db.Uuid
+  title           String            @db.VarChar(300)
+  description     String
+  category        ProblemCategory
+  location        Json              // { village, district, state, country, lat, lng }
+  urgency         ProblemUrgency    @default(medium)
+  peopleAffected  Int?              @map("people_affected")
+  status          ProblemStatus     @default(open)
+  visibility      ProblemVisibility @default(public)
+  tags            String[]          @default([])
+  upvoteCount     Int               @default(0) @map("upvote_count")
+  solutionCount   Int               @default(0) @map("solution_count")
+  media           Json?             // [{ type, url, thumbnail_url }]
+  isDeleted       Boolean           @default(false) @map("is_deleted")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  poster          User              @relation(fields: [postedBy], references: [id])
+  solutions       Solution[]
+  coCreations     CoCreation[]
+  votes           Vote[]
+
+  @@index([category, status, urgency])
+  @@index([postedBy])
+  @@index([createdAt(sort: Desc)])
+  @@map("problems")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SOLUTIONS
+// ─────────────────────────────────────────────────────────────────
+
+model Solution {
+  id              String         @id @default(uuid()) @db.Uuid
+  problemId       String         @map("problem_id") @db.Uuid
+  submittedBy     String         @map("submitted_by") @db.Uuid
+  title           String         @db.VarChar(300)
+  description     String
+  techTags        String[]       @default([]) @map("tech_tags")
+  costEstimate    Json?          @map("cost_estimate")  // [{ item, qty, unit_cost, total }]
+  timeline        Json?          // [{ phase, duration_days }]
+  status          SolutionStatus @default(submitted)
+  coCreationOpen  Boolean        @default(false) @map("co_creation_open")
+  impactScore     Decimal        @default(0) @map("impact_score") @db.Decimal(5, 2)
+  upvoteCount     Int            @default(0) @map("upvote_count")
+  media           Json?          // { attachments[], github_url, demo_url }
+  version         Int            @default(1)
+  isDeleted       Boolean        @default(false) @map("is_deleted")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  problem         Problem        @relation(fields: [problemId], references: [id])
+  innovator       User           @relation(fields: [submittedBy], references: [id])
+  feedbacks       Feedback[]
+  coCreations     CoCreation[]
+  votes           Vote[]
+  wallOfFame      WallOfFame?
+
+  @@index([problemId, status])
+  @@index([submittedBy])
+  @@index([impactScore(sort: Desc)])
+  @@map("solutions")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// FEEDBACK
+// ─────────────────────────────────────────────────────────────────
+
+model Feedback {
+  id           String             @id @default(uuid()) @db.Uuid
+  solutionId   String             @map("solution_id") @db.Uuid
+  submittedBy  String             @map("submitted_by") @db.Uuid
+  rating       Int                // 1–5
+  whatWorked   String?            @map("what_worked")
+  whatFailed   String?            @map("what_failed")
+  suggestions  String?
+  media        Json?              // [{ url, type }]
+  checkpoint   FeedbackCheckpoint
+  isPublic     Boolean            @default(true) @map("is_public")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  solution     Solution           @relation(fields: [solutionId], references: [id])
+  submitter    User               @relation(fields: [submittedBy], references: [id])
+
+  @@unique([solutionId, submittedBy, checkpoint])
+  @@index([solutionId])
+  @@map("feedback")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CO-CREATION
+// ─────────────────────────────────────────────────────────────────
+
+model CoCreation {
+  id                String           @id @default(uuid()) @db.Uuid
+  problemId         String           @map("problem_id") @db.Uuid
+  solutionId        String?          @map("solution_id") @db.Uuid
+  innovatorId       String           @map("innovator_id") @db.Uuid
+  communityUserId   String           @map("community_user_id") @db.Uuid
+  ngoFacilitatorId  String?          @map("ngo_facilitator_id") @db.Uuid
+  status            CoCreationStatus @default(pending)
+  workspaceId       String?          @unique @map("workspace_id") @db.Uuid
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  problem           Problem          @relation(fields: [problemId], references: [id])
+  solution          Solution?        @relation(fields: [solutionId], references: [id])
+  innovator         User             @relation("InnovatorCoCreations", fields: [innovatorId], references: [id])
+  communityUser     User             @relation("CommunityCoCreations", fields: [communityUserId], references: [id])
+  ngoFacilitator    User?            @relation("NgoCoCreations", fields: [ngoFacilitatorId], references: [id])
+  workspace         Workspace?
+
+  @@index([problemId, status])
+  @@map("co_creations")
+}
+
+model Workspace {
+  id           String     @id @default(uuid()) @db.Uuid
+  coCreationId String     @unique @map("co_creation_id") @db.Uuid
+  notes        String?
+  tasks        Json?      @default("[]")  // [{ id, title, assignee, done, dueDate }]
+  files        Json?      @default("[]")  // [{ name, url, uploadedBy, uploadedAt }]
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  coCreation   CoCreation @relation(fields: [coCreationId], references: [id])
+
+  @@map("workspaces")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// MESSAGING
+// ─────────────────────────────────────────────────────────────────
+
+model Conversation {
+  id            String   @id @default(uuid()) @db.Uuid
+  coCreationId  String?  @map("co_creation_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  participants  ConversationParticipant[]
+  messages      Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  conversationId String       @map("conversation_id") @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@id([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @map("conversation_id") @db.Uuid
+  senderId       String       @map("sender_id") @db.Uuid
+  content        String
+  readAt         DateTime?    @map("read_at")
+  isDeleted      Boolean      @default(false) @map("is_deleted")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@map("messages")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// COMMENTS
+// ─────────────────────────────────────────────────────────────────
+
+model Comment {
+  id           String            @id @default(uuid()) @db.Uuid
+  userId       String            @map("user_id") @db.Uuid
+  entityType   CommentEntityType @map("entity_type")
+  // entityId is intentionally plain String (not @db.Uuid) because it holds
+  // either a PostgreSQL solution UUID OR a MongoDB blog ObjectId string.
+  // No FK constraint — referential integrity is enforced at the service layer.
+  entityId     String            @map("entity_id")
+  parentId     String?           @map("parent_id") @db.Uuid
+  content      String
+  upvoteCount  Int               @default(0) @map("upvote_count")
+  isDeleted    Boolean           @default(false) @map("is_deleted")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  user         User              @relation(fields: [userId], references: [id])
+  parent       Comment?          @relation("CommentReplies", fields: [parentId], references: [id])
+  replies      Comment[]         @relation("CommentReplies")
+
+  @@index([entityType, entityId])
+  @@map("comments")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// VOTES
+// ─────────────────────────────────────────────────────────────────
+
+model Vote {
+  id         String     @id @default(uuid()) @db.Uuid
+  userId     String     @map("user_id") @db.Uuid
+  entityType EntityType @map("entity_type")
+  entityId   String     @map("entity_id") @db.Uuid
+  value      Int        // +1 or -1
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  user       User       @relation(fields: [userId], references: [id])
+  problem    Problem?   @relation(fields: [entityId], references: [id], map: "vote_problem_fk")
+  solution   Solution?  @relation(fields: [entityId], references: [id], map: "vote_solution_fk")
+
+  @@unique([userId, entityType, entityId])
+  @@index([entityType, entityId])
+  @@map("votes")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  type      String    @db.VarChar(50)
+  title     String    @db.VarChar(200)
+  body      String
+  readAt    DateTime? @map("read_at")
+  metadata  Json?
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// WALL OF FAME
+// ─────────────────────────────────────────────────────────────────
+
+model WallOfFame {
+  id          String   @id @default(uuid()) @db.Uuid
+  solutionId  String   @unique @map("solution_id") @db.Uuid
+  tier        WoFTier  @default(bronze)
+  awardYear   Int?     @map("award_year")
+  description String?
+  featuredAt  DateTime @default(now()) @map("featured_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  solution    Solution @relation(fields: [solutionId], references: [id])
+
+  @@index([tier, awardYear])
+  @@map("wall_of_fame")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// TAGS & BADGES
+// ─────────────────────────────────────────────────────────────────
+
+model Tag {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String   @unique @db.VarChar(100)
+  usageCount Int      @default(0) @map("usage_count")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("tags")
+}
+
+model UserBadge {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  badgeType String   @map("badge_type") @db.VarChar(50)
+  awardedAt DateTime @default(now()) @map("awarded_at")
+  metadata  Json?
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, badgeType])
+  @@map("user_badges")
+}
