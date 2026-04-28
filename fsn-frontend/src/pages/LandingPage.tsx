@@ -35,25 +35,25 @@ const marqueeItems = [
 function MarqueeTicker({ dark = false }: { dark?: boolean }) {
   const items = [...marqueeItems, ...marqueeItems]
   const base = dark
-    ? 'bg-fsn-800 text-white border-t border-b border-fsn-700'
-    : 'bg-cream-200 text-ink-500 border-t border-b border-cream-300'
+    ? 'bg-ink-900/50 backdrop-blur-sm text-white/40 border-t border-b border-white/5'
+    : 'bg-cream-100 text-ink-300 border-t border-b border-ink-50'
 
   return (
-    <div className={`overflow-hidden py-3 ${base}`}>
+    <div className={`overflow-hidden py-4 ${base}`}>
       <div className="flex whitespace-nowrap">
         <ul className="marquee-track marquee-primary flex items-center gap-0">
           {items.map((item, i) => (
-            <li key={i} className="flex items-center gap-6 px-6 text-xs font-body font-semibold tracking-widest uppercase">
+            <li key={i} className="flex items-center gap-6 px-10 text-[10px] font-body font-bold tracking-[0.2em] uppercase">
               {item}
-              <span className="text-current opacity-30">◆</span>
+              <span className="text-current opacity-20">◆</span>
             </li>
           ))}
         </ul>
         <ul className="marquee-track marquee-secondary flex items-center gap-0" aria-hidden>
           {items.map((item, i) => (
-            <li key={i} className="flex items-center gap-6 px-6 text-xs font-body font-semibold tracking-widest uppercase">
+            <li key={i} className="flex items-center gap-6 px-10 text-[10px] font-body font-bold tracking-[0.2em] uppercase">
               {item}
-              <span className="text-current opacity-30">◆</span>
+              <span className="text-current opacity-20">◆</span>
             </li>
           ))}
         </ul>
@@ -114,6 +114,8 @@ const benefits = [
   { title: 'Structured Process',   desc: 'From problem to solution to feedback — a repeatable pipeline designed for maximum impact.' },
 ]
 
+import heroImage from '@/hero-innovation.png'
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const { openAuthModal, isAuthenticated } = useAuthStore()
@@ -142,72 +144,128 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen">
 
-      {/* ── Hero (dark, Estatia-style) ─────────────────────────────────── */}
-      <section className="relative bg-ink-900 pt-28 pb-0 overflow-hidden">
-        {/* Subtle green radial glow */}
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse 70% 50% at 50% -5%, rgba(45,134,83,0.12) 0%, transparent 65%)' }} />
-
-        <div className="relative max-w-7xl mx-auto px-5 sm:px-8 text-center pb-20">
-          <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
-            {/* Eyebrow */}
-            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-white/10 bg-white/5 mb-10">
-              <span className="w-2 h-2 rounded-full bg-fsn-400 animate-pulse" />
-              <span className="text-xs font-body font-medium text-white/60 tracking-widest uppercase">
-                Trusted for transforming communities
-              </span>
-            </div>
-
-            {/* Headline */}
-            <h1 className="font-display font-semibold text-white leading-[1.05] mb-6"
-              style={{ fontSize: 'clamp(2.8rem, 7vw, 5.5rem)' }}>
-              Real Problems.{' '}
-              <em className="not-italic" style={{ color: '#4ade80' }}>Real Solutions.</em>
-              <br />Measurable Impact.
-            </h1>
-
-            <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10 font-body leading-relaxed">
-              FSN connects bottom-of-pyramid communities with NGOs and innovators
-              to co-create, test, and scale solutions — powered by transparent impact scoring.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              {isAuthenticated ? (
-                <>
-                  <Link to="/problems"
-                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white text-ink-900 text-sm font-body font-semibold hover:bg-cream-100 transition-colors">
-                    Browse Problems <ArrowRightIcon className="w-4 h-4" />
-                  </Link>
-                  <Link to="/problems?action=create"
-                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full border border-white/20 text-white text-sm font-body font-semibold hover:bg-white/10 transition-colors">
-                    Post a Problem
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <button onClick={() => openAuthModal('register')}
-                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white text-ink-900 text-sm font-body font-semibold hover:bg-cream-100 transition-colors">
-                    Join the Network <ArrowRightIcon className="w-4 h-4" />
-                  </button>
-                  <Link to="/problems"
-                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full border border-white/20 text-white text-sm font-body font-semibold hover:bg-white/10 transition-colors">
-                    Explore Problems
-                  </Link>
-                </>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Hero image placeholder / stats cards */}
-          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto">
-            {stats.map((s, i) => (
-              <div key={i} className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-5 text-center">
-                <p className="font-display text-3xl font-semibold text-white leading-none">{s.value}</p>
-                <p className="text-xs font-body font-medium text-white/60 mt-1">{s.label}</p>
+      {/* ── Hero (Premium Split Layout with Mesh Gradient) ──────────────── */}
+      <section className="relative mesh-gradient pt-32 pb-24 overflow-hidden min-h-[90vh] flex items-center">
+        {/* Animated background noise */}
+        <div className="absolute inset-0 noise-overlay opacity-[0.03] pointer-events-none" />
+        
+        <div className="relative max-w-7xl mx-auto px-5 sm:px-8 w-full">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            
+            {/* Left Column: Typography */}
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="text-left"
+            >
+              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-white/10 bg-white/5 mb-8">
+                <span className="w-2 h-2 rounded-full bg-fsn-400 animate-pulse" />
+                <span className="text-xs font-body font-medium text-white/70 tracking-widest uppercase">
+                  Innovation for the Bottom of the Pyramid
+                </span>
               </div>
-            ))}
-          </motion.div>
+
+              <h1 className="font-display font-semibold text-white leading-[1.1] mb-8"
+                style={{ fontSize: 'clamp(2.5rem, 6vw, 4.8rem)' }}>
+                Solve Real Problems.<br />
+                <span className="text-fsn-400 italic">Create Lasting</span><br />
+                Impact.
+              </h1>
+
+              <p className="text-lg text-white/60 max-w-xl mb-12 font-body leading-relaxed">
+                FSN bridges the gap between ground-level challenges and world-class innovation. 
+                We connect BOP communities with NGOs and innovators to build, test, and scale 
+                frugal solutions that actually work.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                {isAuthenticated ? (
+                  <>
+                    <Link to="/problems"
+                      className="btn-dark bg-white text-ink-900 px-10 py-4 hover:bg-fsn-50 transition-all shadow-xl shadow-white/5">
+                      Browse Problems <ArrowRightIcon className="w-4 h-4" />
+                    </Link>
+                    <Link to="/problems?action=create"
+                      className="btn-outline border-white/20 text-white px-10 py-4 hover:bg-white/10 transition-all">
+                      Post a Problem
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => openAuthModal('register')}
+                      className="btn-dark bg-white text-ink-900 px-10 py-4 hover:bg-fsn-50 transition-all shadow-xl shadow-white/5">
+                      Join the Network <ArrowRightIcon className="w-4 h-4" />
+                    </button>
+                    <Link to="/problems"
+                      className="btn-outline border-white/20 text-white px-10 py-4 hover:bg-white/10 transition-all">
+                      Explore Challenges
+                    </Link>
+                  </>
+                )}
+              </div>
+
+              {/* Minimal stats row */}
+              <div className="mt-16 flex items-center gap-10">
+                {stats.slice(0, 2).map((s, i) => (
+                  <div key={i} className="border-l border-white/10 pl-6">
+                    <p className="font-display text-3xl font-semibold text-white leading-none mb-1">{s.value}</p>
+                    <p className="text-xs font-body font-medium text-white/50 tracking-wider uppercase">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Right Column: Visual Component */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              transition={{ delay: 0.2, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="relative"
+            >
+              {/* Main Image Frame */}
+              <div className="relative z-10 rounded-3xl overflow-hidden border border-white/10 shadow-2xl rotate-1 group transition-transform hover:rotate-0 duration-700">
+                <img 
+                  src={heroImage} 
+                  alt="Frugal Innovation in Action" 
+                  className="w-full aspect-[4/5] object-cover scale-105 group-hover:scale-100 transition-transform duration-1000" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-ink-900/60 to-transparent" />
+                
+                {/* Floating Impact Card inside image */}
+                <div className="absolute bottom-6 left-6 right-6 glass-card p-5 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-fsn-500 flex items-center justify-center">
+                      <span className="text-white text-xl">💡</span>
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold text-sm">Community Verified</p>
+                      <p className="text-white/60 text-xs">Solutions tested by real people</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Decorative elements */}
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-fsn-500/20 blur-[80px] rounded-full" />
+              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-gold-500/10 blur-[80px] rounded-full" />
+              
+              {/* Secondary floating card */}
+              <motion.div 
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -left-12 top-1/4 glass-card p-4 hidden xl:block shadow-2xl"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-gold-500/20 flex items-center justify-center">
+                    <span className="text-gold-500">🏆</span>
+                  </div>
+                  <p className="text-white text-xs font-medium">Wall of Fame <br/><span className="text-white/50">Top Innovators</span></p>
+                </div>
+              </motion.div>
+            </motion.div>
+
+          </div>
         </div>
       </section>
 
