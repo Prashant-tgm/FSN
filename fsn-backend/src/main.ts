@@ -17,7 +17,11 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('app.port', 3000);
   const prefix = configService.get<string>('app.prefix', 'v1');
-  const corsOrigins = configService.get<string>('app.corsOrigins', '').split(',');
+  let corsOrigins = configService.get<string>('app.corsOrigins', '').split(',').map(o => o.trim());
+  // Ensure production frontend URL is always allowed to prevent CORS errors if env var is missing
+  if (!corsOrigins.includes('https://frugalsolnet.vercel.app')) {
+    corsOrigins.push('https://frugalsolnet.vercel.app');
+  }
 
   // ── Security ──────────────────────────────────────────────────────────────
   app.use(
@@ -31,8 +35,8 @@ async function bootstrap() {
   // ── CORS ──────────────────────────────────────────────────────────────────
   app.enableCors({
     origin: corsOrigins,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     credentials: true,
   });
 
