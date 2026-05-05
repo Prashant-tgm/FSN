@@ -25,8 +25,25 @@ export class PrismaService
   }
 
   async onModuleInit() {
-    await this.$connect();
-    this.logger.log('PostgreSQL connected via Prisma');
+    let retries = 5;
+    while (retries > 0) {
+      try {
+        await this.$connect();
+        // Ping the database to ensure it is actually ready to accept queries
+        await this.$queryRawUnsafe('SELECT 1');
+        this.logger.log('PostgreSQL connected via Prisma');
+        break;
+      } catch (err: any) {
+        this.logger.error(`Database connection failed. Retries left: ${retries - 1}`, err.message);
+        retries -= 1;
+        if (retries === 0) {
+          this.logger.error('Could not connect to the PostgreSQL database after multiple retries.');
+          throw err;
+        }
+        // Wait 3 seconds before retrying
+        await new Promise(res => setTimeout(res, 3000));
+      }
+    }
 
     // Log slow queries (> 500ms) in development
     if (process.env.NODE_ENV === 'development') {
